@@ -157,9 +157,9 @@ public class Main {
 
                     //apply scene pitch and heading transform
                     //this is performed after lighting as it is scene rotation as opposed to object rotation
-                    Node p1Transform = transformMatrix.multiplyPoint(t.getP1());
-                    Node p2Transform = transformMatrix.multiplyPoint(t.getP2());
-                    Node p3Transform = transformMatrix.multiplyPoint(t.getP3());
+                    Node p1= transformMatrix.multiplyPoint(t.getP1());
+                    Node p2 = transformMatrix.multiplyPoint(t.getP2());
+                    Node p3 = transformMatrix.multiplyPoint(t.getP3());
 
 
                     //zoom calculation
@@ -168,34 +168,44 @@ public class Main {
 
 
                     //adjust points based on zoom scaling factor and frame center
-                    p1Transform.setX(p1Transform.getX() * scale + centerX);
-                    p1Transform.setY(p1Transform.getY() * scale + centerY);
-                    p1Transform.setZ(p1Transform.getZ() * scale);
+                    p1.setX(p1.getX() * scale + centerX);
+                    p1.setY(p1.getY() * scale + centerY);
+                    p1.setZ(p1.getZ() * scale);
 
-                    p2Transform.setX(p2Transform.getX() * scale + centerX);
-                    p2Transform.setY(p2Transform.getY() * scale + centerY);
-                    p2Transform.setZ(p2Transform.getZ() * scale);
+                    p2.setX(p2.getX() * scale + centerX);
+                    p2.setY(p2.getY() * scale + centerY);
+                    p2.setZ(p2.getZ() * scale);
 
-                    p3Transform.setX(p3Transform.getX() * scale + centerX);
-                    p3Transform.setY(p3Transform.getY() * scale + centerY);
-                    p3Transform.setZ(p3Transform.getZ() * scale);
+                    p3.setX(p3.getX() * scale + centerX);
+                    p3.setY(p3.getY() * scale + centerY);
+                    p3.setZ(p3.getZ() * scale);
 
 
                     //perform rasterization (display on pixel-by-pixel basis)
 
                     //create bounding box
-                    double minX = Math.min( Math.min(p1Transform.getX(), p2Transform.getX()), p3Transform.getX());
-                    double maxX = Math.max( Math.max(p1Transform.getX(), p2Transform.getX()), p3Transform.getX());
+                    double minX = Math.min( Math.min(p1.getX(), p2.getX()), p3.getX());
+                    double maxX = Math.max( Math.max(p1.getX(), p2.getX()), p3.getX());
 
-                    double minY = Math.min( Math.min(p1Transform.getY(), p2Transform.getY()), p3Transform.getY());
-                    double maxY = Math.max( Math.max(p1Transform.getY(), p2Transform.getY()), p3Transform.getY());
+                    double minY = Math.min( Math.min(p1.getY(), p2.getY()), p3.getY());
+                    double maxY = Math.max( Math.max(p1.getY(), p2.getY()), p3.getY());
 
 
                     //iterate through bounding box pixels checking if pixel in triangle, update depth buffer accordingly
                     for (int x = (int) minX; x <= maxX; x++) {
                         for (int y = (int) minY; y <= maxY; y++) {
-                            if (pointInTriangle(x, y, p1Transform, p2Transform, p3Transform)) {
-                                double depth = getDepth(x, y, p1Transform, p2Transform, p3Transform);
+            
+                            //calculate barycentric coordinates
+                            double area = (p2.getY() - p3.getY()) * (p1.getX() - p3.getX()) + (p3.getX() - p2.getX()) * (p1.getY() - p3.getY());
+                            double alpha = ((p2.getY() - p3.getY()) * (x - p3.getX()) + (p3.getX() - p2.getX()) * (y - p3.getY())) / area;
+                            double beta = ((p3.getY() - p1.getY()) * (x - p3.getX()) + (p1.getX() - p3.getX()) * (y - p3.getY())) / area;
+                            double gamma = 1 - alpha - beta;
+
+                            //determine if coordinates in triangle
+                            if (alpha >= 0 && beta >= 0 && gamma >= 0) {
+
+                                //calculate depth via barycentric coordinates
+                                double depth = -(alpha * p1.getZ() + beta * p2.getZ() + gamma * p3.getZ());
 
                                 //if pixel closer to viewer than current depth buffer pixel XY, update depth and frame buffers
                                 if (depth < depthBuffer[x][y]) {
@@ -336,32 +346,4 @@ public class Main {
         }
     }
 
-
-
-    //check if a x,y point is inside a 2D triangle
-    static boolean pointInTriangle(int x, int y, Node p1, Node p2, Node p3) {
-        //calculate barycentric coordinates
-        double area = (p2.getY() - p3.getY()) * (p1.getX() - p3.getX()) + (p3.getX() - p2.getX()) * (p1.getY() - p3.getY());
-        double alpha = ((p2.getY() - p3.getY()) * (x - p3.getX()) + (p3.getX() - p2.getX()) * (y - p3.getY())) / area;
-        double beta = ((p3.getY() - p1.getY()) * (x - p3.getX()) + (p1.getX() - p3.getX()) * (y - p3.getY())) / area;
-        double gamma = 1 - alpha - beta;
-
-        //check if the point is inside the triangle
-        return alpha >= 0 && beta >= 0 && gamma >= 0;
-    }
-
-
-
-    //get x,y point depth in triangle
-    static double getDepth(int x, int y, Node p1, Node p2, Node p3) {
-        //calculate barycentric coordinates
-        double area = (p2.getY() - p3.getY()) * (p1.getX() - p3.getX()) + (p3.getX() - p2.getX()) * (p1.getY() - p3.getY());
-        double alpha = ((p2.getY() - p3.getY()) * (x - p3.getX()) + (p3.getX() - p2.getX()) * (y - p3.getY())) / area;
-        double beta = ((p3.getY() - p1.getY()) * (x - p3.getX()) + (p1.getX() - p3.getX()) * (y - p3.getY())) / area;
-        double gamma = 1 - alpha - beta;
-
-        //calculate depth using barycentric coordinates
-        return -(alpha * p1.getZ() + beta * p2.getZ() + gamma * p3.getZ());
-    }
-    
 }
