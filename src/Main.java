@@ -149,31 +149,10 @@ public class Main {
                     //calculate dotProduct of triangle normal vector and light direction vector
                     double dotProduct = normal[0] * ligthSourceVec[0] + normal[1] * ligthSourceVec[1] + normal[2] * ligthSourceVec[2];
 
-                    
-                    //prune out back-facing triangles
-                    dotProduct = Math.max(0, dotProduct);
 
-
-                    //convert to linear color space
-                    double linearRed = Math.pow(t.getColor().getRed() / 255.0, 2.2) * dotProduct;
-                    double linearGreen = Math.pow(t.getColor().getGreen() / 255.0, 2.2) * dotProduct;
-                    double linearBlue = Math.pow(t.getColor().getBlue() / 255.0, 2.2) * dotProduct;
-
-
-                    //apply shading in linear color space
-                    linearRed *= dotProduct;
-                    linearGreen *= dotProduct;
-                    linearBlue *= dotProduct;
-
-
-                    //convert back to gamma-corrected color space
-                    int shadedRed = (int) (Math.pow(linearRed, 1.0 / 2.2) * 255);
-                    int shadedGreen = (int) (Math.pow(linearGreen, 1.0 / 2.2) * 255);
-                    int shadedBlue = (int) (Math.pow(linearBlue, 1.0 / 2.2) * 255);
-
-
-                    //use shaded color (ensuring within range)
-                    Color finalColor = new Color(Math.min(255, shadedRed), Math.min(255, shadedGreen), Math.min(255, shadedBlue));
+                    //get shaded color (gamma-correct the linear dot product)
+                    double correctedDotProduct = Math.pow(dotProduct, 1.0 / 2.2);
+                    Color finalColor = new Color(Math.min(255, (int)  (t.getColor().getRed() * correctedDotProduct)), Math.min(255, (int) (t.getColor().getGreen() * correctedDotProduct)), Math.min(255, (int) (t.getColor().getBlue() * correctedDotProduct)));
 
 
                     //apply scene pitch and heading transform
